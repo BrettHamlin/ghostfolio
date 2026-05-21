@@ -54,6 +54,9 @@ describe('HealthController', () => {
 
     await controller.getReadinessDetails(response as unknown as Response);
 
+    expect(healthService.isDatabaseHealthy).toHaveBeenCalledTimes(1);
+    expect(healthService.isRedisCacheHealthy).toHaveBeenCalledTimes(1);
+
     return {
       body: response.json.mock.calls[0][0],
       response
@@ -158,7 +161,7 @@ describe('HealthController', () => {
     });
 
     it('responds with JSON and HTTP 200 without authentication', async () => {
-      // harness:criterion=c-readiness-details-no-auth-required,c-readiness-details-body-is-json
+      // harness:criterion=c-readiness-details-no-auth-required,c-readiness-details-body-is-json,c-readiness-details-body-no-extra-fields
       healthService.isDatabaseHealthy.mockResolvedValue(true);
       healthService.isRedisCacheHealthy.mockResolvedValue(true);
 
@@ -176,6 +179,7 @@ describe('HealthController', () => {
         redis: true,
         status: 'OK'
       });
+      expect(Object.keys(body).sort()).toEqual(['database', 'redis', 'status']);
     });
   });
 });
