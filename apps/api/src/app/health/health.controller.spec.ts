@@ -15,10 +15,31 @@ import 'reflect-metadata';
 import { HealthController } from './health.controller';
 import { HealthService } from './health.service';
 
-type HealthServiceMock = Pick<
-  jest.Mocked<HealthService>,
-  'isDatabaseHealthy' | 'isRedisCacheHealthy'
->;
+class HealthServiceMock extends HealthService {
+  public readonly isDatabaseHealthyMock = jest.fn<Promise<boolean>, []>();
+  public readonly isRedisCacheHealthyMock = jest.fn<Promise<boolean>, []>();
+
+  public constructor({
+    databaseHealthy,
+    redisHealthy
+  }: {
+    databaseHealthy: boolean;
+    redisHealthy: boolean;
+  }) {
+    super({} as never, {} as never, {} as never, {} as never);
+
+    this.isDatabaseHealthyMock.mockResolvedValue(databaseHealthy);
+    this.isRedisCacheHealthyMock.mockResolvedValue(redisHealthy);
+  }
+
+  public override isDatabaseHealthy() {
+    return this.isDatabaseHealthyMock();
+  }
+
+  public override isRedisCacheHealthy() {
+    return this.isRedisCacheHealthyMock();
+  }
+}
 
 type MockResponse = Response & {
   json: jest.Mock;
@@ -32,10 +53,7 @@ const createHealthServiceMock = ({
   databaseHealthy: boolean;
   redisHealthy: boolean;
 }): HealthServiceMock => {
-  return {
-    isDatabaseHealthy: jest.fn().mockResolvedValue(databaseHealthy),
-    isRedisCacheHealthy: jest.fn().mockResolvedValue(redisHealthy)
-  };
+  return new HealthServiceMock({ databaseHealthy, redisHealthy });
 };
 
 const createResponseMock = (): MockResponse => {
@@ -51,7 +69,7 @@ const createResponseMock = (): MockResponse => {
 };
 
 const createController = (healthService: HealthServiceMock) => {
-  return new HealthController({} as AiService, healthService as HealthService);
+  return new HealthController({} as AiService, healthService);
 };
 
 const assertReadinessDetails = async ({
@@ -76,8 +94,9 @@ const assertReadinessDetails = async ({
 
   await controller.getReadinessDetails(response);
 
-  expect(healthService.isDatabaseHealthy).toHaveBeenCalledTimes(1);
-  expect(healthService.isRedisCacheHealthy).toHaveBeenCalledTimes(1);
+  expect(healthService.isDatabaseHealthyMock).toHaveBeenCalledTimes(1);
+  expect(healthService.isRedisCacheHealthyMock).toHaveBeenCalledTimes(1);
+  expect(response.status).toHaveBeenCalledTimes(1);
   expect(response.status.mock.calls).toEqual([[HttpStatus.OK]]);
   expect(response.json).toHaveBeenCalledTimes(1);
   expect(response.json).toHaveBeenCalledWith(expectedBody);
