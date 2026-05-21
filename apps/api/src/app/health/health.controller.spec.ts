@@ -10,6 +10,27 @@ import { Test } from '@nestjs/testing';
 import { HealthController } from './health.controller';
 import { HealthService } from './health.service';
 
+type ExpectedReadinessDetailsHealthResponse = {
+  database: boolean;
+  redis: boolean;
+  status: string;
+};
+
+type ExactReadinessDetailsHealthResponse =
+  ReadinessDetailsHealthResponse extends ExpectedReadinessDetailsHealthResponse
+    ? Exclude<
+        keyof ReadinessDetailsHealthResponse,
+        keyof ExpectedReadinessDetailsHealthResponse
+      > extends never
+      ? ExpectedReadinessDetailsHealthResponse extends ReadinessDetailsHealthResponse
+        ? true
+        : never
+      : never
+    : never;
+
+const readinessDetailsHealthResponseInterfaceMatches: ExactReadinessDetailsHealthResponse =
+  true;
+
 describe('HealthController', () => {
   let controller: HealthController;
   let healthService: jest.Mocked<
@@ -42,7 +63,10 @@ describe('HealthController', () => {
   }: {
     expectedBody: ReadinessDetailsHealthResponse;
   }) => {
+    expect(response.status).toHaveBeenCalledTimes(1);
     expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
+    expect(response.json).toHaveBeenCalledTimes(1);
+    expect(response.json).toHaveBeenCalledWith(expectedBody);
 
     const body = response.json.mock.calls[0][0] as ReadinessDetailsHealthResponse;
 
@@ -55,6 +79,23 @@ describe('HealthController', () => {
     expect(healthService.isDatabaseHealthy).toHaveBeenCalledTimes(1);
     expect(healthService.isRedisCacheHealthy).toHaveBeenCalledTimes(1);
   };
+
+  it('uses the public readiness details response interface shape', () => {
+    // harness:criterion=c-readiness-details-interface-fields,c-readiness-details-interface-exported
+    const body: ReadinessDetailsHealthResponse = {
+      database: true,
+      redis: true,
+      status: 'OK'
+    };
+
+    expect(readinessDetailsHealthResponseInterfaceMatches).toBe(true);
+    expect(body).toStrictEqual({ database: true, redis: true, status: 'OK' });
+    expect(Object.keys(body).sort()).toEqual(['database', 'redis', 'status']);
+    expect(Object.keys(body)).toHaveLength(3);
+    expect(typeof body.database).toBe('boolean');
+    expect(typeof body.redis).toBe('boolean');
+    expect(typeof body.status).toBe('string');
+  });
 
   it('returns readiness details when database and Redis are healthy', async () => {
     // harness:criterion=c-readiness-details-returns-200-always,c-readiness-details-all-healthy-body,c-readiness-details-status-ok-literal,c-readiness-details-response-shape,c-readiness-details-controller-handler-exists,c-readiness-details-calls-both-checks,c-readiness-details-interface-fields,c-readiness-details-interface-exported
