@@ -1,0 +1,78 @@
+version: "1"
+
+# gridfire_template_version: stage3-ts-node-backend/v1
+
+github:
+  owner: BrettHamlin
+  repo: ghostfolio
+
+reviewer_dispatch:
+  strategy: progressive
+  clustering:
+    mode: lsp_preferred
+    regex_fallback: true
+
+reviewers:
+  - name: node-api-contracts
+    file: .harness/agents/node-api-contracts.md
+    description: Checks TypeScript Node/Nest backend API contracts, guards, DTO validation, status codes, and response shapes.
+    path_hints: ["apps/api/**", "libs/**", "prisma/**", "package.json", "nx.json", "**/*.ts"]
+    language_hints: [typescript, javascript, json]
+    mandatory_triggers: ["controller", "guard", "resolver", "route", "dto", "validation", "status", "request", "response", "auth"]
+    passing_grade: C
+    max_retries: 5
+
+  - name: node-data-auth-safety
+    file: .harness/agents/node-data-auth-safety.md
+    description: Checks TypeScript Node backend data access, authorization scoping, Prisma/ORM safety, sensitive data exposure, and transactional behavior.
+    path_hints: ["apps/api/**", "libs/**", "prisma/**", "**/*.service.ts", "**/*.repository.ts", "**/*.guard.ts", "**/*.ts"]
+    language_hints: [typescript, javascript, sql, prisma, json]
+    mandatory_triggers: ["user", "account", "tenant", "auth", "permission", "scope", "prisma", "query", "delete", "update", "transaction", "secret", "token"]
+    passing_grade: C
+    max_retries: 5
+
+codegen:
+  cli_provider: codex-cli
+  default_model: gpt-5.5
+
+stages:
+  planner:
+    explore_model: gpt-5.5
+  code_gen_feature:
+    model: gpt-5.5
+    timeout_s: 21600
+  code_gen_test:
+    model: gpt-5.5
+  code_gen_e2e_test:
+    model: gpt-5.5
+    timeout_s: 21600
+
+ci:
+  provider: github-actions
+  build:
+    workflow: ".github/workflows/gridfire-build.yml"
+    timeout_sec: 3600
+  test:
+    workflow: ".github/workflows/gridfire-test.yml"
+    timeout_sec: 3600
+  failure_extraction:
+    - source: annotations
+    - source: junit-xml
+      path: "test-results/*.xml"
+    - source: ai-extract
+
+gates:
+  plan:
+    auto_approve: true
+  ac:
+    auto_approve: true
+  merge_review:
+    auto_approve: true
+
+inner_loop:
+  reviewer_per_max: 2
+  reviewer_total_max: 5
+  build_max: 3
+  test_max: 3
+  build_test_total_max: 5
+  budget_reset_on_user_changes: true
