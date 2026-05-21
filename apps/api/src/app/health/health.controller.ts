@@ -29,6 +29,30 @@ export class HealthController {
     private readonly healthService: HealthService
   ) {}
 
+  @Get('readiness/details')
+  public async getReadinessDetails(
+    @Res() response: Response
+  ): Promise<
+    Response<{
+      database: boolean;
+      redis: boolean;
+      status: 'OK' | 'SERVICE_UNAVAILABLE';
+    }>
+  > {
+    const databaseServiceHealthy = await this.healthService.isDatabaseHealthy();
+    const redisCacheServiceHealthy =
+      await this.healthService.isRedisCacheHealthy();
+
+    return response.status(HttpStatus.OK).json({
+      database: databaseServiceHealthy,
+      redis: redisCacheServiceHealthy,
+      status:
+        databaseServiceHealthy && redisCacheServiceHealthy
+          ? 'OK'
+          : 'SERVICE_UNAVAILABLE'
+    });
+  }
+
   @Get()
   public async getHealth(@Res() response: Response) {
     const databaseServiceHealthy = await this.healthService.isDatabaseHealthy();
