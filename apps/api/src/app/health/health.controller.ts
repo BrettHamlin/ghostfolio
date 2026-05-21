@@ -1,6 +1,6 @@
 import { AiService } from '@ghostfolio/api/app/endpoints/ai/ai.service';
 import { TransformDataSourceInRequestInterceptor } from '@ghostfolio/api/interceptors/transform-data-source-in-request/transform-data-source-in-request.interceptor';
-import {
+import type {
   AiServiceHealthResponse,
   DataEnhancerHealthResponse,
   DataProviderHealthResponse,
@@ -53,13 +53,13 @@ export class HealthController {
   ): Promise<Response<ReadinessDetailsResponse>> {
     const database = await this.healthService.isDatabaseHealthy();
     const redis = await this.healthService.isRedisCacheHealthy();
-    const status = database && redis ? 'OK' : 'SERVICE_UNAVAILABLE';
-
-    return response.status(HttpStatus.OK).json({
+    const readinessDetails: ReadinessDetailsResponse = {
       database,
       redis,
-      status
-    });
+      status: database && redis ? 'OK' : 'SERVICE_UNAVAILABLE'
+    };
+
+    return response.status(HttpStatus.OK).json(readinessDetails);
   }
 
   @Get('ai')

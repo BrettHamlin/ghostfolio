@@ -1,4 +1,5 @@
 import { AiService } from '@ghostfolio/api/app/endpoints/ai/ai.service';
+import type { ReadinessDetailsResponse } from '@ghostfolio/common/interfaces';
 
 import {
   HttpStatus,
@@ -79,9 +80,9 @@ const assertReadinessDetails = async ({
 }: {
   databaseHealthy: boolean;
   expectedBody: {
-    database: boolean;
-    redis: boolean;
-    status: 'OK' | 'SERVICE_UNAVAILABLE';
+    database: ReadinessDetailsResponse['database'];
+    redis: ReadinessDetailsResponse['redis'];
+    status: ReadinessDetailsResponse['status'];
   };
   redisHealthy: boolean;
 }) => {
@@ -97,6 +98,7 @@ const assertReadinessDetails = async ({
   expect(healthService.isDatabaseHealthyMock).toHaveBeenCalledTimes(1);
   expect(healthService.isRedisCacheHealthyMock).toHaveBeenCalledTimes(1);
   expect(response.status).toHaveBeenCalledTimes(1);
+  expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
   expect(response.status.mock.calls).toEqual([[HttpStatus.OK]]);
   expect(response.json).toHaveBeenCalledTimes(1);
   expect(response.json).toHaveBeenCalledWith(expectedBody);
