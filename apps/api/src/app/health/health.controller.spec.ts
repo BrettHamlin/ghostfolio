@@ -1,6 +1,6 @@
 import type { ReadinessDetailsResponse } from '@ghostfolio/common/interfaces';
 
-import { INestApplication, HttpStatus } from '@nestjs/common';
+import { HttpStatus, INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Response } from 'express';
 
@@ -64,6 +64,16 @@ describe('HealthController', () => {
     expect(Object.keys(body).sort()).toEqual(['database', 'redis', 'status']);
   }
 
+  function expectReadinessDetails(
+    body: ReadinessDetailsResponse,
+    expectedBody: ReadinessDetailsResponse
+  ) {
+    expect(body).toEqual(expectedBody);
+    expect(body.status).toBe(expectedBody.status);
+    expect(['OK', 'SERVICE_UNAVAILABLE']).toContain(body.status);
+    expectExactReadinessDetailsKeys(body);
+  }
+
   describe('getHealth', () => {
     it('keeps the existing health endpoint status and response shape', async () => {
       // harness:criterion=c-existing-gethealth-unaffected
@@ -99,9 +109,7 @@ describe('HealthController', () => {
       expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(response.status).toHaveReturnedWith(response);
       expect(response.json).toHaveBeenCalledTimes(1);
-      expect(body).toEqual(expectedBody);
-      expect(body.status).toBe('OK');
-      expectExactReadinessDetailsKeys(body);
+      expectReadinessDetails(body, expectedBody);
     });
 
     it('returns unavailable details when the database is unhealthy', async () => {
@@ -115,13 +123,11 @@ describe('HealthController', () => {
       expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(response.status).toHaveReturnedWith(response);
       expect(response.json).toHaveBeenCalledTimes(1);
-      expect(body).toEqual({
+      expectReadinessDetails(body, {
         database: false,
         redis: true,
         status: 'SERVICE_UNAVAILABLE'
       });
-      expect(body.status).toBe('SERVICE_UNAVAILABLE');
-      expectExactReadinessDetailsKeys(body);
     });
 
     it('returns unavailable details when redis is unhealthy', async () => {
@@ -135,17 +141,15 @@ describe('HealthController', () => {
       expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(response.status).toHaveReturnedWith(response);
       expect(response.json).toHaveBeenCalledTimes(1);
-      expect(body).toEqual({
+      expectReadinessDetails(body, {
         database: true,
         redis: false,
         status: 'SERVICE_UNAVAILABLE'
       });
-      expect(body.status).toBe('SERVICE_UNAVAILABLE');
-      expectExactReadinessDetailsKeys(body);
     });
 
     it('returns unavailable details with HTTP 200 when both checks are unhealthy', async () => {
-      // harness:criterion=c-readiness-details-returns-200,c-readiness-details-both-unhealthy-unavailable,c-readiness-details-status-field-values,c-readiness-details-no-extra-fields,c-readiness-details-uses-express-response-pattern,c-readiness-details-no-service-changes,c-readiness-details-spec-file-collocated
+      // harness:criterion=c-readiness-details-returns-200,c-readiness-details-both-unhealthy-unavailable,c-readiness-details-status-field-values,c-readiness-details-no-extra-fields,c-readiness-details-uses-express-response-pattern,c-readiness-details-spec-file-collocated
       const { body, response } = await callGetReadinessDetails({
         database: false,
         redis: false
@@ -155,19 +159,17 @@ describe('HealthController', () => {
       expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(response.status).toHaveReturnedWith(response);
       expect(response.json).toHaveBeenCalledTimes(1);
-      expect(body).toEqual({
+      expectReadinessDetails(body, {
         database: false,
         redis: false,
         status: 'SERVICE_UNAVAILABLE'
       });
-      expect(body.status).toBe('SERVICE_UNAVAILABLE');
-      expectExactReadinessDetailsKeys(body);
     });
   });
 });
 
 describe('HealthController readiness details route', () => {
-  let app: INestApplication;
+  let app: INestApplication | undefined;
   let healthService: Pick<
     HealthService,
     'isDatabaseHealthy' | 'isRedisCacheHealthy'
@@ -199,14 +201,24 @@ describe('HealthController readiness details route', () => {
   });
 
   afterEach(async () => {
-    await app.close();
+    await app?.close();
+    app = undefined;
   });
 
   async function getReadinessDetails() {
-    const address = app.getHttpServer().address();
-    const port = typeof address === 'string' ? address : address.port;
+    if (!app) {
+      throw new Error('Nest application was not initialized');
+    }
 
-    return fetch(`http://127.0.0.1:${port}/api/health/readiness/details`);
+    const address = app.getHttpServer().address();
+
+    if (!address || typeof address === 'string') {
+      throw new Error('Nest HTTP server was not listening on a TCP port');
+    }
+
+    return fetch(
+      `http://127.0.0.1:${address.port}/api/health/readiness/details`
+    );
   }
 
   it('serves the registered readiness details route publicly as JSON', async () => {
