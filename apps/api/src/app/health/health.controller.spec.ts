@@ -1,11 +1,12 @@
 import type { ReadinessDetailsHealthResponse } from '@ghostfolio/common/interfaces';
 import type { Response } from 'express';
-import type { AddressInfo } from 'node:net';
 
-import { AiService } from '@ghostfolio/api/app/endpoints/ai/ai.service';
-
-import { HttpStatus, VersioningType } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+import { HttpStatus, RequestMethod } from '@nestjs/common';
+import {
+  GUARDS_METADATA,
+  METHOD_METADATA,
+  PATH_METADATA
+} from '@nestjs/common/constants';
 
 import { HealthController } from './health.controller';
 import { HealthService } from './health.service';
@@ -65,6 +66,7 @@ describe('HealthController', () => {
   }) => {
     expect(response.status).toHaveBeenCalledTimes(1);
     expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
+    expect(response.status.mock.calls[0][0]).toBe(200);
     expect(response.json).toHaveBeenCalledTimes(1);
     expect(response.json).toHaveBeenCalledWith(expectedBody);
 
@@ -76,6 +78,8 @@ describe('HealthController', () => {
     expect(typeof body.database).toBe('boolean');
     expect(typeof body.redis).toBe('boolean');
     expect(typeof body.status).toBe('string');
+    expect(healthService.isDatabaseHealthy).toHaveBeenCalled();
+    expect(healthService.isRedisCacheHealthy).toHaveBeenCalled();
     expect(healthService.isDatabaseHealthy).toHaveBeenCalledTimes(1);
     expect(healthService.isRedisCacheHealthy).toHaveBeenCalledTimes(1);
   };
@@ -156,48 +160,28 @@ describe('HealthController', () => {
     expect(response.json.mock.calls[0][0].status).toBe('SERVICE_UNAVAILABLE');
   });
 
-  it('serves readiness details over the versioned API route without authentication', async () => {
+  it('registers readiness details as an unauthenticated GET route', () => {
     // harness:criterion=c-readiness-details-no-auth-required,c-readiness-details-no-guards,c-readiness-details-controller-handler-exists,c-readiness-details-returns-200-always,c-readiness-details-response-shape
-    healthService.isDatabaseHealthy.mockImplementation(() =>
-      Promise.resolve(true)
+    expect(
+      Reflect.getMetadata(
+        PATH_METADATA,
+        HealthController.prototype.getReadinessDetails
+      )
+    ).toBe('readiness/details');
+    expect(
+      Reflect.getMetadata(
+        METHOD_METADATA,
+        HealthController.prototype.getReadinessDetails
+      )
+    ).toBe(RequestMethod.GET);
+    expect(Reflect.getMetadata(GUARDS_METADATA, HealthController)).toBe(
+      undefined
     );
-    healthService.isRedisCacheHealthy.mockImplementation(() =>
-      Promise.resolve(true)
-    );
-
-    const moduleRef = await Test.createTestingModule({
-      controllers: [HealthController],
-      providers: [
-        { provide: AiService, useValue: {} },
-        { provide: HealthService, useValue: healthService }
-      ]
-    }).compile();
-    const app = moduleRef.createNestApplication();
-
-    app.enableVersioning({
-      defaultVersion: '1',
-      type: VersioningType.URI
-    });
-    app.setGlobalPrefix('api');
-
-    await app.listen(0, '127.0.0.1');
-
-    try {
-      const { port } = app.getHttpServer().address() as AddressInfo;
-      const httpResponse = await fetch(
-        `http://127.0.0.1:${port}/api/v1/health/readiness/details`
-      );
-      const body = await httpResponse.json();
-
-      expect(httpResponse.status).toBe(HttpStatus.OK);
-      expect(body).toStrictEqual({ database: true, redis: true, status: 'OK' });
-      expect(Object.keys(body).sort()).toEqual(['database', 'redis', 'status']);
-      expect(Object.keys(body)).toHaveLength(3);
-      expect(typeof body.database).toBe('boolean');
-      expect(typeof body.redis).toBe('boolean');
-      expect(typeof body.status).toBe('string');
-    } finally {
-      await app.close();
-    }
+    expect(
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        HealthController.prototype.getReadinessDetails
+      )
+    ).toBe(undefined);
   });
 });

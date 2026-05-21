@@ -53,10 +53,11 @@ export class HealthController {
   ): Promise<Response<ReadinessDetailsHealthResponse>> {
     const database = await this.healthService.isDatabaseHealthy();
     const redis = await this.healthService.isRedisCacheHealthy();
+    const status = database && redis ? 'OK' : 'SERVICE_UNAVAILABLE';
     const readinessDetails: ReadinessDetailsHealthResponse = {
       database,
       redis,
-      status: database && redis ? 'OK' : 'SERVICE_UNAVAILABLE'
+      status
     };
 
     return response.status(HttpStatus.OK).json(readinessDetails);
