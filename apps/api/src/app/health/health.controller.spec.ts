@@ -59,6 +59,11 @@ describe('HealthController', () => {
     return { body, response };
   }
 
+  function expectExactReadinessDetailsKeys(body: ReadinessDetailsResponse) {
+    expect(Object.keys(body)).toHaveLength(3);
+    expect(Object.keys(body).sort()).toEqual(['database', 'redis', 'status']);
+  }
+
   describe('getHealth', () => {
     it('keeps the existing health endpoint status and response shape', async () => {
       // harness:criterion=c-existing-gethealth-unaffected
@@ -92,10 +97,11 @@ describe('HealthController', () => {
 
       expect(response.status).toHaveBeenCalledTimes(1);
       expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
+      expect(response.status).toHaveReturnedWith(response);
       expect(response.json).toHaveBeenCalledTimes(1);
       expect(body).toEqual(expectedBody);
       expect(body.status).toBe('OK');
-      expect(Object.keys(body).sort()).toEqual(['database', 'redis', 'status']);
+      expectExactReadinessDetailsKeys(body);
     });
 
     it('returns unavailable details when the database is unhealthy', async () => {
@@ -107,6 +113,7 @@ describe('HealthController', () => {
 
       expect(response.status).toHaveBeenCalledTimes(1);
       expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
+      expect(response.status).toHaveReturnedWith(response);
       expect(response.json).toHaveBeenCalledTimes(1);
       expect(body).toEqual({
         database: false,
@@ -114,7 +121,7 @@ describe('HealthController', () => {
         status: 'SERVICE_UNAVAILABLE'
       });
       expect(body.status).toBe('SERVICE_UNAVAILABLE');
-      expect(Object.keys(body).sort()).toEqual(['database', 'redis', 'status']);
+      expectExactReadinessDetailsKeys(body);
     });
 
     it('returns unavailable details when redis is unhealthy', async () => {
@@ -126,6 +133,7 @@ describe('HealthController', () => {
 
       expect(response.status).toHaveBeenCalledTimes(1);
       expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
+      expect(response.status).toHaveReturnedWith(response);
       expect(response.json).toHaveBeenCalledTimes(1);
       expect(body).toEqual({
         database: true,
@@ -133,7 +141,7 @@ describe('HealthController', () => {
         status: 'SERVICE_UNAVAILABLE'
       });
       expect(body.status).toBe('SERVICE_UNAVAILABLE');
-      expect(Object.keys(body).sort()).toEqual(['database', 'redis', 'status']);
+      expectExactReadinessDetailsKeys(body);
     });
 
     it('returns unavailable details with HTTP 200 when both checks are unhealthy', async () => {
@@ -145,6 +153,7 @@ describe('HealthController', () => {
 
       expect(response.status).toHaveBeenCalledTimes(1);
       expect(response.status).toHaveBeenCalledWith(HttpStatus.OK);
+      expect(response.status).toHaveReturnedWith(response);
       expect(response.json).toHaveBeenCalledTimes(1);
       expect(body).toEqual({
         database: false,
@@ -152,7 +161,7 @@ describe('HealthController', () => {
         status: 'SERVICE_UNAVAILABLE'
       });
       expect(body.status).toBe('SERVICE_UNAVAILABLE');
-      expect(Object.keys(body).sort()).toEqual(['database', 'redis', 'status']);
+      expectExactReadinessDetailsKeys(body);
     });
   });
 });
