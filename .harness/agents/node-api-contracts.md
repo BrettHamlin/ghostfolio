@@ -64,6 +64,17 @@ test-stage evidence shows the route contract is actually untested.
   dependencies, making required providers optional, replacing DI with ad hoc
   globals, or changing unrelated controller/module wiring as a test convenience.
   Tests should mock required providers/interceptors instead.
+- For NestJS controller tests on simple public or non-mutating endpoints, prefer
+  direct controller invocation plus route metadata/decorator assertions
+  (`PATH_METADATA`, `METHOD_METADATA`) to prove the route contract. Do not accept
+  ad hoc partial app bootstraps such as
+  `Test.createTestingModule({ controllers: [...] })` plus
+  `createNestApplication()`/`app.listen()` when the repo's real app harness has
+  global providers, guards, pipes, or interceptors that the partial module omits.
+  Those tests are CI-fragile and can fail on unrelated provider resolution
+  instead of proving the endpoint contract. Use the repo's established full e2e
+  harness when one exists; otherwise keep simple route tests direct and
+  metadata-based.
 - Product tests must be portable to GitHub Actions checkout refs. Do not accept
   tests that shell out to Git or inspect local working-tree diffs (`git diff`,
   `git status`, `git show`, `execFileSync('git', ...)`) to prove scope. Those
@@ -79,8 +90,9 @@ test-stage evidence shows the route contract is actually untested.
 - **D/error:** status code/error-body contracts regress, validation is removed
   for user-controlled input, guard order breaks endpoint semantics, production
   dependency injection is weakened to satisfy tests, tests assert behavior that
-  contradicts the public API contract, or product tests depend on Git
-  working-tree/diff state.
+  contradicts the public API contract, ad hoc partial Nest app bootstraps omit
+  required global providers/interceptors while claiming to prove route
+  registration, or product tests depend on Git working-tree/diff state.
 - **C/warning:** minor documentation, naming, or partial test coverage gaps
   proven by the provided diff/context rather than by cluster absence alone.
 - **A:** no Node backend API contract concerns in the diff.

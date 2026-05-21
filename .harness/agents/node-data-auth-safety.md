@@ -62,6 +62,11 @@ reviewed diff supports them.
   weakening auth/data services merely to make a unit test easier to instantiate.
   Tests should mock required providers/interceptors instead of changing
   production dependency injection.
+- Do not solve NestJS route-test setup problems by bypassing or omitting global
+  auth, data, guard, pipe, or interceptor dependencies. For simple public or
+  non-mutating controller route checks, prefer direct controller invocation plus
+  metadata/decorator assertions over ad hoc partial app bootstraps that omit the
+  repo's real global providers/interceptors.
 - Product tests must not shell out to Git or inspect local working-tree diffs
   (`git diff`, `git status`, `git show`, `execFileSync('git', ...)`) inside the
   customer's test suite. Such tests are checkout-state dependent and can pass
@@ -75,9 +80,10 @@ reviewed diff supports them.
   can be exposed.
 - **D/error:** broad mutation risk, missing transaction/idempotency for a
   multi-write feature, a data model change that weakens a safety invariant, or
-  production dependency injection/auth providers are weakened as a test
-  convenience. Treat product tests that depend on Git working-tree/diff state
-  as D/error because they create CI-only reliability failures.
+  production dependency injection/auth providers are weakened or omitted as a
+  test convenience. Treat product tests that depend on Git working-tree/diff
+  state or ad hoc partial Nest app bootstraps that bypass the real auth/data
+  provider graph as D/error because they create CI-only reliability failures.
 - **C/warning:** partial safety coverage, unclear ownership naming, or
   non-blocking test gaps proven by the provided diff/context.
 - **A:** no data/auth safety concerns in the diff.
