@@ -3,7 +3,8 @@ import { TransformDataSourceInRequestInterceptor } from '@ghostfolio/api/interce
 import {
   AiServiceHealthResponse,
   DataEnhancerHealthResponse,
-  DataProviderHealthResponse
+  DataProviderHealthResponse,
+  ReadinessDetailsHealthResponse
 } from '@ghostfolio/common/interfaces';
 
 import {
@@ -44,6 +45,20 @@ export class HealthController {
         .status(HttpStatus.SERVICE_UNAVAILABLE)
         .json({ status: getReasonPhrase(StatusCodes.SERVICE_UNAVAILABLE) });
     }
+  }
+
+  @Get('readiness/details')
+  public async getReadinessDetails(
+    @Res() response: Response
+  ): Promise<Response<ReadinessDetailsHealthResponse>> {
+    const database = await this.healthService.isDatabaseHealthy();
+    const redis = await this.healthService.isRedisCacheHealthy();
+
+    return response.status(HttpStatus.OK).json({
+      database,
+      redis,
+      status: database && redis ? 'OK' : 'SERVICE_UNAVAILABLE'
+    });
   }
 
   @Get('ai')
