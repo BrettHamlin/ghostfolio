@@ -59,6 +59,15 @@ test-stage evidence shows the route contract is actually untested.
   one negative path when auth or validation is involved.
 - Successful responses do not expose internal-only fields, secrets, tokens, API
   keys, or password material.
+- Tests must exercise the API contract without weakening production dependency
+  injection. Do not accept adding `@Optional()` to existing required constructor
+  dependencies, making required providers optional, replacing DI with ad hoc
+  globals, or changing unrelated controller/module wiring as a test convenience.
+  Tests should mock required providers/interceptors instead.
+- Product tests must be portable to GitHub Actions checkout refs. Flag tests
+  that shell out to brittle local branch assumptions such as `git diff main`;
+  scope checks should inspect current files, use stable test fixtures, or run
+  outside the customer's in-repo test suite.
 
 ## Severity anchors
 
@@ -66,8 +75,9 @@ test-stage evidence shows the route contract is actually untested.
   changes ownership semantics, a handler can report success after failing, or
   sensitive data is returned in a public response.
 - **D/error:** status code/error-body contracts regress, validation is removed
-  for user-controlled input, guard order breaks endpoint semantics, or tests
-  assert behavior that contradicts the public API contract.
+  for user-controlled input, guard order breaks endpoint semantics, production
+  dependency injection is weakened to satisfy tests, or tests assert behavior
+  that contradicts the public API contract.
 - **C/warning:** minor documentation, naming, or partial test coverage gaps
   proven by the provided diff/context rather than by cluster absence alone.
 - **A:** no Node backend API contract concerns in the diff.

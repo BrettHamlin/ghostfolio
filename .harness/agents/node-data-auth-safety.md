@@ -56,6 +56,16 @@ reviewed diff supports them.
   migration/test coverage.
 - Tests cover data-safety boundaries when a feature changes auth, scoping,
   updates, deletes, transactions, or sensitive fields.
+- Production security and data dependencies remain mandatory unless the product
+  contract explicitly changes. Do not accept adding `@Optional()` to existing
+  required NestJS constructor dependencies, bypassing guards/providers, or
+  weakening auth/data services merely to make a unit test easier to instantiate.
+  Tests should mock required providers/interceptors instead of changing
+  production dependency injection.
+- Product tests must not depend on brittle local Git branch names such as
+  `git diff main` inside the customer's test suite. Such tests can pass locally
+  and fail in GitHub Actions detached/shallow checkouts; use stable file
+  inspection or harness-level checks instead.
 
 ## Severity anchors
 
@@ -63,7 +73,9 @@ reviewed diff supports them.
   protected data path becomes accessible cross-user, or secrets/tokens/passwords
   can be exposed.
 - **D/error:** broad mutation risk, missing transaction/idempotency for a
-  multi-write feature, or a data model change that weakens a safety invariant.
+  multi-write feature, a data model change that weakens a safety invariant, or
+  production dependency injection/auth providers are weakened as a test
+  convenience.
 - **C/warning:** partial safety coverage, unclear ownership naming, or
   non-blocking test gaps proven by the provided diff/context.
 - **A:** no data/auth safety concerns in the diff.
