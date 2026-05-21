@@ -62,9 +62,10 @@ reviewed diff supports them.
   weakening auth/data services merely to make a unit test easier to instantiate.
   Tests should mock required providers/interceptors instead of changing
   production dependency injection.
-- Product tests must not depend on brittle local Git branch names such as
-  `git diff main` inside the customer's test suite. Such tests can pass locally
-  and fail in GitHub Actions detached/shallow checkouts; use stable file
+- Product tests must not shell out to Git or inspect local working-tree diffs
+  (`git diff`, `git status`, `git show`, `execFileSync('git', ...)`) inside the
+  customer's test suite. Such tests are checkout-state dependent and can pass
+  locally while failing after changes are committed in CI; use stable file
   inspection or harness-level checks instead.
 
 ## Severity anchors
@@ -75,7 +76,8 @@ reviewed diff supports them.
 - **D/error:** broad mutation risk, missing transaction/idempotency for a
   multi-write feature, a data model change that weakens a safety invariant, or
   production dependency injection/auth providers are weakened as a test
-  convenience.
+  convenience. Treat product tests that depend on Git working-tree/diff state
+  as D/error because they create CI-only reliability failures.
 - **C/warning:** partial safety coverage, unclear ownership naming, or
   non-blocking test gaps proven by the provided diff/context.
 - **A:** no data/auth safety concerns in the diff.

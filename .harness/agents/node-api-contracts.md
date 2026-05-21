@@ -64,10 +64,12 @@ test-stage evidence shows the route contract is actually untested.
   dependencies, making required providers optional, replacing DI with ad hoc
   globals, or changing unrelated controller/module wiring as a test convenience.
   Tests should mock required providers/interceptors instead.
-- Product tests must be portable to GitHub Actions checkout refs. Flag tests
-  that shell out to brittle local branch assumptions such as `git diff main`;
-  scope checks should inspect current files, use stable test fixtures, or run
-  outside the customer's in-repo test suite.
+- Product tests must be portable to GitHub Actions checkout refs. Do not accept
+  tests that shell out to Git or inspect local working-tree diffs (`git diff`,
+  `git status`, `git show`, `execFileSync('git', ...)`) to prove scope. Those
+  tests are checkout-state dependent and can pass locally while failing after
+  changes are committed in CI. Scope checks should inspect current files, use
+  stable fixtures, or run outside the customer's in-repo test suite.
 
 ## Severity anchors
 
@@ -76,8 +78,9 @@ test-stage evidence shows the route contract is actually untested.
   sensitive data is returned in a public response.
 - **D/error:** status code/error-body contracts regress, validation is removed
   for user-controlled input, guard order breaks endpoint semantics, production
-  dependency injection is weakened to satisfy tests, or tests assert behavior
-  that contradicts the public API contract.
+  dependency injection is weakened to satisfy tests, tests assert behavior that
+  contradicts the public API contract, or product tests depend on Git
+  working-tree/diff state.
 - **C/warning:** minor documentation, naming, or partial test coverage gaps
   proven by the provided diff/context rather than by cluster absence alone.
 - **A:** no Node backend API contract concerns in the diff.
