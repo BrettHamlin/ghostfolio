@@ -75,6 +75,18 @@ test-stage evidence shows the route contract is actually untested.
   instead of proving the endpoint contract. Use the repo's established full e2e
   harness when one exists; otherwise keep simple route tests direct and
   metadata-based.
+- `Test.createTestingModule` can be acceptable for direct controller dependency
+  injection with mocked providers when the test calls controller methods and
+  asserts decorator metadata. It is not acceptable when used as a controller-only
+  HTTP app, auth, global-prefix, or method-routing oracle. Do not require source
+  checks that prove a specific test harness was used.
+- Product tests must not read their own test source, implementation source, or
+  barrel files as plain text merely to prove prompt compliance, test-harness
+  style, or string presence. Do not accept checks such as
+  `readFileSync(__filename)` to prove `Test.createTestingModule` was used, or
+  source-string assertions that an interface/export exists when normal
+  TypeScript imports, compilation, metadata assertions, or runtime behavior can
+  prove the contract.
 - Product tests must be portable to GitHub Actions checkout refs. Do not accept
   tests that shell out to Git or inspect local working-tree diffs (`git diff`,
   `git status`, `git show`, `execFileSync('git', ...)`) to prove scope. Those
@@ -92,7 +104,9 @@ test-stage evidence shows the route contract is actually untested.
   dependency injection is weakened to satisfy tests, tests assert behavior that
   contradicts the public API contract, ad hoc partial Nest app bootstraps omit
   required global providers/interceptors while claiming to prove route
-  registration, or product tests depend on Git working-tree/diff state.
+  registration, product tests inspect their own/source files to prove test
+  harness or prompt compliance, or product tests depend on Git working-tree/diff
+  state.
 - **C/warning:** minor documentation, naming, or partial test coverage gaps
   proven by the provided diff/context rather than by cluster absence alone.
 - **A:** no Node backend API contract concerns in the diff.

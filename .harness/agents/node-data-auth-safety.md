@@ -66,7 +66,16 @@ reviewed diff supports them.
   auth, data, guard, pipe, or interceptor dependencies. For simple public or
   non-mutating controller route checks, prefer direct controller invocation plus
   metadata/decorator assertions over ad hoc partial app bootstraps that omit the
-  repo's real global providers/interceptors.
+  repo's real global providers/interceptors. `Test.createTestingModule` can be
+  acceptable for direct controller dependency injection with mocked providers
+  when the test calls controller methods and asserts metadata; it is not
+  acceptable as a controller-only HTTP auth/app-routing oracle.
+- Product tests must not read their own test source, implementation source, or
+  barrel files as plain text merely to prove prompt compliance, test-harness
+  style, or string presence. Do not accept checks such as
+  `readFileSync(__filename)` to prove a specific Nest test helper was used, or
+  source-string assertions for interfaces/exports that normal TypeScript
+  imports, compilation, metadata assertions, or runtime behavior can prove.
 - Product tests must not shell out to Git or inspect local working-tree diffs
   (`git diff`, `git status`, `git show`, `execFileSync('git', ...)`) inside the
   customer's test suite. Such tests are checkout-state dependent and can pass
@@ -82,8 +91,9 @@ reviewed diff supports them.
   multi-write feature, a data model change that weakens a safety invariant, or
   production dependency injection/auth providers are weakened or omitted as a
   test convenience. Treat product tests that depend on Git working-tree/diff
-  state or ad hoc partial Nest app bootstraps that bypass the real auth/data
-  provider graph as D/error because they create CI-only reliability failures.
+  state, source-inspection meta-tests, or ad hoc partial Nest app bootstraps
+  that bypass the real auth/data provider graph as D/error because they create
+  CI-only reliability failures.
 - **C/warning:** partial safety coverage, unclear ownership naming, or
   non-blocking test gaps proven by the provided diff/context.
 - **A:** no data/auth safety concerns in the diff.
