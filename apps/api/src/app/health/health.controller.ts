@@ -1,9 +1,11 @@
 import { AiService } from '@ghostfolio/api/app/endpoints/ai/ai.service';
+import { environment } from '@ghostfolio/api/environments/environment';
 import { TransformDataSourceInRequestInterceptor } from '@ghostfolio/api/interceptors/transform-data-source-in-request/transform-data-source-in-request.interceptor';
 import {
   AiServiceHealthResponse,
   DataEnhancerHealthResponse,
-  DataProviderHealthResponse
+  DataProviderHealthResponse,
+  ReadinessDetailsHealthResponse
 } from '@ghostfolio/common/interfaces';
 
 import {
@@ -28,6 +30,19 @@ export class HealthController {
     private readonly aiService: AiService,
     private readonly healthService: HealthService
   ) {}
+
+  @Get('readiness/details')
+  public getReadinessDetails(
+    @Res() response: Response
+  ): Response<ReadinessDetailsHealthResponse> {
+    return response.status(StatusCodes.OK).json({
+      status: getReasonPhrase(StatusCodes.OK),
+      timestamp: new Date().toISOString(),
+      uptimeSeconds: process.uptime(),
+      memoryUsageMb: process.memoryUsage().heapUsed / 1024 / 1024,
+      version: environment.version
+    });
+  }
 
   @Get()
   public async getHealth(@Res() response: Response) {
